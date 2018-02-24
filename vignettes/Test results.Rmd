@@ -1,0 +1,159 @@
+---
+title: "Test results for SAGA project in GSoC 2018"
+author: "Johan Larsson"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{GSoC 2018 SAGA project test results}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  dev.args = list(pointsize = 8)
+)
+```
+
+## Easy
+
+Our first task is to fit a L1-regularized linear model the spam data set
+from **ElemStatLearn** and analyze the results in terms of the selected
+features as well as test error and AUC. We will also compare our model to a
+naive model that predicts the most frequent class.
+
+We begin by loading our libraries.
+
+```{r libraries}
+library(glmnet)
+library(ElemStatLearn)
+```
+
+Next, we set up simple train and test partitions.
+
+```{r train}
+# extract the necessary data
+x <- as.matrix(spam[, -ncol(spam)])
+y <- spam$spam
+n <- nrow(x)
+
+# create train and test sets
+train_id <- sample(seq_len(n), size = floor(0.8*n))
+train_x <- x[train_id, ]
+train_y <- y[train_id]
+test_x <- x[-train_id, ]
+test_y <- y[-train_id]
+
+# train the model
+fit1 <- cv.glmnet(train_x, train_y, family = "binomial")
+```
+
+The model's chosen factors are
+
+```{r features}
+names(coef(fit1)[coef(fit1)[, 1] > 0, ])
+```
+
+Now we will study the performance of the model. We are going to use 
+Receiver Operating Characteristics of the model as well as a 
+naive classification scheme wherein each observation is classified
+as the most prevalent category in the training set, namely
+``r names(which.max(table(train_y)))``.
+
+```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model (to the left) and naive model (to the right).", fig.show = "keep"}
+library(pROC)
+
+roc1 <- roc(test_y, as.vector(predict(fit1, test_x, type = "response")),
+            ci = TRUE)
+roc2 <- roc(test_y, rep(1, length(test_y)), ci = TRUE)
+par(mfrow = c(2, 1))
+plot(roc1)
+plot(roc2)
+```
+
+The 95% confidence level for the Area Under the Curve (AUC) value for our
+lasso model is $[`r roc1$ci[1]`, `r roc1$ci[3]`]$, which
+is signficantly better than that of our naive predictions, which of course
+are 0.5 (with no variance).
+
+## Medium
+
+In this part we are going to measure the performance of **glmnet** with
+that of **bigoptim** using **microbenchmark**. For this purpose,
+we are going to use the `covtype.libsvm` dataset from **bigoptim**
+and see how the timings differ across numbers of columns and rows in the
+data.
+
+```{r}
+library(microbenchmark)
+library(glmnet)
+library(bigoptim)
+
+data("covtype.libsvm")
+d <- covtype.libsvm
+d$y[d$y == 2] <- -1
+
+nrows <- floor(seq(100, 50000, length.out = 20))
+ncols <- floor(seq(2, 50, length.out = 20))
+glmnet_time <- matrix(NA, length(nrows), length(ncols))
+res <- data.frame(rows = integer(),
+                  cols = integer(),
+                  time = double(),
+                  loss = double(),
+                  package = character())
+maxit <- 1e5 # fix the number of iterations
+
+for (i in nrows) {
+  for (j in ncols) {
+    xx <- d$X[seq_len(i), seq_len(j)]
+    yy <- d$y[seq_len(i), , drop = FALSE]
+    z <- microbenchmark(
+      glmnet = {glmnet_fit <- glmnet(xx, yy, alpha = 0, maxit = maxit)},
+      sag = {sag_fit <- sag_fit(xx, yy, maxit = maxit)},
+      times = 10
+    )
+    
+    glmnet_cost <- bigoptim:::.get_cost(
+      xx,
+      yy,
+      as.matrix(coef(glmnet_fit))[-1],
+      lambda = glmnet_fit$lambda,
+      family = "binomial", 
+      backend = if (bigoptim:::is.sparse(xx)) "R" else "C"
+    )
+    
+    sag_cost <- bigoptim::get_cost(sag_fit, xx, yy)
+    
+    timings <- tapply(z$time, z$expr, median, na.rm = TRUE)
+    glmnet_time <- timings[names(timings) == "glmnet"]
+    sag_time <- timings[names(timings) == "sag"]
+    
+    res <- rbind(res, data.frame(rows = i,
+                                 cols = j,
+                                 time = c(glmnet_time, sag_time),
+                                 loss = c(glmnet_cost, sag_cost),
+                                 package = c("glmnet", "sag")))
+  }
+}
+```
+
+```{r, fig.cap = "Logarithmized timings of GLMnet and SAG runs."}
+lattice::levelplot(
+  log(time) ~ cols*rows | package, 
+  data = res,
+  col.regions = colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"))(100)
+)
+```
+
+```{r}
+lattice::levelplot(
+  loss ~ cols*rows | package,
+  data = res,
+  col.regions = colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"))(100)
+)
+```
+
+
+## Hard
