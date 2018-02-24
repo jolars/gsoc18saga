@@ -1,0 +1,20 @@
+Package: gsoc18saga
+Title: Test results for SAGA project in GSoC 2018
+Version: 0.0.0.9000
+Authors@R: person("Johan", "Larsson", email = "johanlarsson@outlook.com",
+                  role = c("aut", "cre"))
+Description: Test results for SAGA project in GSoC 2018
+Depends: R (>= 3.4.3)
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+LinkingTo: Rcpp
+Imports: Rcpp
+RoxygenNote: 6.0.1
+Suggests: knitr,
+    rmarkdown,
+    lattice,
+    bigoptim,
+    ElemStatLearn,
+    glmnet
+VignetteBuilder: knitr
