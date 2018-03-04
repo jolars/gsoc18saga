@@ -8,13 +8,17 @@ Depends: R (>= 3.4.3)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-LinkingTo: Rcpp
-Imports: Rcpp
-RoxygenNote: 6.0.1
-Suggests: knitr,
+Imports:
+    Rcpp (>= 0.12.15),
+    glmnet
+Suggests: 
+    knitr,
     rmarkdown,
     lattice,
     bigoptim,
     ElemStatLearn,
-    glmnet
-VignetteBuilder: knitr
+    reticulate,
+    testthat
+LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 6.0.1
+Roxygen: list(markdown = TRUE)
