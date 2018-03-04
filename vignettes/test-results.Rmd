@@ -1,0 +1,193 @@
+---
+title: "GSoC 2018 SAGA project test results"
+author: "Johan Larsson"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{GSoC 2018 SAGA project test results}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4,
+  dev.args = list(pointsize = 8)
+)
+library(lattice)
+trellis.par.set(fontsize = list(text = 8, points = 4))
+```
+
+## Easy
+
+Our first task is to fit a L1-regularized linear model to the spam data set
+from **ElemStatLearn** and analyze the results in terms of the selected
+features as well as test error and AUC. We will also compare our model to a
+naive model that predicts the most frequent class.
+
+We begin by loading our libraries.
+
+```{r libraries}
+library(gsoc18saga)
+library(glmnet)
+library(ElemStatLearn)
+```
+
+Next, we set up train and test partitions using the **caret** package.
+
+```{r train}
+# extract the necessary data
+x <- as.matrix(spam[, -ncol(spam)])
+y <- spam$spam
+n <- nrow(x)
+
+# create train and test sets
+train_id <- caret::createDataPartition(y, p = 0.75)[[1L]]
+train_x <- x[train_id, ]
+train_y <- y[train_id]
+test_x <- x[-train_id, ]
+test_y <- y[-train_id]
+
+# train the model
+fit1 <- glmnet::cv.glmnet(train_x, train_y, family = "binomial")
+```
+
+The model's chosen factors are
+
+```{r features}
+names(coef(fit1)[coef(fit1)[, 1] > 0, ])
+```
+
+Now we will study the performance of the model. We are going to use
+Receiver Operating Characteristics of the model as well as a
+naive classification scheme wherein each observation is classified
+as the most prevalent category in the training set, namely
+``r names(which.max(table(train_y)))``.
+
+```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model (to the left) and naive model (to the right)."}
+library(pROC)
+
+roc1 <- roc(test_y, as.vector(predict(fit1, test_x, type = "response")),
+            ci = TRUE)
+roc2 <- roc(test_y, rep(1, length(test_y)), ci = TRUE)
+par(mfrow = c(1, 2))
+plot(roc1)
+plot(roc2)
+```
+
+The 95% confidence level for the Area Under the Curve (AUC) value for our
+lasso model is $[`r roc1$ci[1]`, `r roc1$ci[3]`]$, which
+is signficantly better than that of our naive predictions, which of course
+are 0.5 (with no variance).
+
+## Medium
+
+In this part we are going to compare the performance of **glmnet** with
+that of **bigoptim** using **microbenchmark**. For this purpose,
+we are going to use the `covtype.libsvm` dataset from **bigoptim**
+and see how timings differ across numbers of columns and rows in the
+data. We will also study objective function values
+
+Looking at the results from the simulation, we note that `glmnet()`
+converges when either the number of rows or columns are relatively low.
+As we add more observations (rows) or covariates (columns), however,
+the performance of the SAG algorithm.
+
+```{r, fig.cap = "Speed of glmnet and bigoptim runs. Colors indicate execution time in logarithmized nanoseconds."}
+gradpal <- colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"))(100)
+lattice::levelplot(
+  log(time) ~ cols*rows | package, 
+  data = data_medium,
+  asp = 1,
+  col.regions = gradpal
+)
+```
+
+```{r, fig.cap = "Objective function loss for glmnet and bigoptim. Colors indicate objective function loss."}
+lattice::levelplot(
+  loss ~ cols*rows | package,
+  data = data_medium,
+  asp = 1,
+  col.regions = gradpal
+)
+```
+
+
+## Medium-hard
+ 
+```{r, fig.cap = "Speed of glmnet and scikit-learn (SAGA) runs. Colors indicate execution time in logarithmized nanoseconds."}
+lattice::levelplot(
+  log(time) ~ cols*rows | package, 
+  data = data_mediumhard,
+  asp = 1,
+  col.regions = gradpal
+)
+```
+
+```{r, fig.cap = "Objective function loss for glmnet and bigoptim. Colors indicate objective function loss."}
+lattice::levelplot(
+  loss ~ cols*rows | package,
+  data = data_mediumhard,
+  asp = 1,
+  col.regions = gradpal
+)
+```
+
+## Hard
+
+The solution to the last test is presented in the package that
+this vignette is part of. I have written the functions `objective_r()`:
+
+```{r r-objective, eval = FALSE}
+objective_r <- function(beta0, beta, x, y, lambda, alpha = 0) {
+  n <- length(y)
+  # binomial loglikelihood
+  z <- beta0 + crossprod(x, beta)
+  loglik <- sum(y*z - log(1 + exp(z)))
+
+  # compute penalty
+  penalty <- 0.5*(1 - alpha)*sum(beta^2) + alpha*sum(abs(beta))
+  -loglik/n + lambda*penalty
+}
+```
+
+and `objective_cpp()`: 
+
+```{Rcpp cpp-objective, eval = FALSE}
+#include <RcppArmadillo.h>
+
+// [[Rcpp::export]]
+double objective_cpp(double beta0,
+                     arma::vec beta,
+                     arma::mat x,
+                     arma::uvec y,
+                     double lambda,
+                     double alpha = 0) {
+  int n = y.n_elem;
+  arma::mat z = beta0 + x.t()*beta;
+  double loglik = arma::accu(y%z - arma::log(1 + arma::exp(z)));
+  double penalty = 0.5*(1 - alpha)*arma::accu(arma::square(beta)) +
+    alpha*arma::accu(arma::abs(beta));
+  return -loglik/n + lambda*penalty;
+}
+```
+
+The concurrence of the two functions is examplified through the following lines
+and is added as a unit test to the package, the result of which you
+can view [here](https://travis-ci.org/jolars/gsoc18saga).
+
+```{r test}
+x <- matrix(rnorm(100*20), 100, 20)
+y <- sample(1:2, 100, replace = TRUE)
+fit <- glmnet::cv.glmnet(x, y, family = "binomial")
+lambda <- fit$lambda.1se
+beta0 <- coef(fit, lambda)[1]
+beta <- coef(fit, lambda)[-1]
+obj_r <- objective_r(beta0, beta, t(x), y, lambda, alpha = 1)
+obj_cpp <- objective_cpp(beta0, beta, t(x), y, lambda, alpha = 1)
+all.equal(obj_r, obj_cpp)
+```
+
