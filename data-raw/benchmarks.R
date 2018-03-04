@@ -51,8 +51,8 @@ get_loss <- function(fit,
   } else if (inherits(fit, "sklearn.linear_model.logistic.LogisticRegression")) {
     C <- fit$C
     lambda <- 1/(n*C)
-    B <- t(fit$coef_)
-    B0 <- as.vector(fit$intercept_)
+    beta <- t(fit$coef_)
+    beta0 <- as.vector(fit$intercept_)
   }
   logloss(beta0, beta, x, y, lambda, alpha, n)
 }
@@ -65,8 +65,8 @@ data("covtype.libsvm")
 d <- covtype.libsvm
 d$X <- scale(d$X)
 
-nrows <- floor(seq(1000, 50000, length.out = 20))
-ncols <- floor(seq(2, 50, length.out = 20))
+nrows <- floor(seq(100, 40000, length.out = 20))
+ncols <- floor(seq(2, 40, length.out = 20))
 data_medium <- data.frame(rows = integer(),
                           cols = integer(),
                           time = double(),
