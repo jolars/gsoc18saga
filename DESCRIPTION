@@ -3,7 +3,7 @@ Title: Test results for SAGA project in GSoC 2018
 Version: 0.0.0.9000
 Authors@R: person("Johan", "Larsson", email = "johanlarsson@outlook.com",
                   role = c("aut", "cre"))
-Description: Test results for SAGA project in GSoC 2018
+Description: Test results for SAGA project in GSoC 2018.
 Depends: R (>= 3.4.3)
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -18,7 +18,10 @@ Suggests:
     bigoptim,
     ElemStatLearn,
     reticulate,
-    testthat
+    testthat,
+    RColorBrewer,
+    caret
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.0.1
 Roxygen: list(markdown = TRUE)
+VignetteBuilder: knitr
