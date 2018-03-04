@@ -20,7 +20,10 @@ Suggests:
     reticulate,
     testthat,
     RColorBrewer,
-    caret
+    caret,
+    pROC,
+    tidyr,
+    dplyr
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.0.1
 Roxygen: list(markdown = TRUE)

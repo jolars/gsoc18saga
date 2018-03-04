@@ -13,8 +13,6 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7,
-  fig.height = 4,
   dev.args = list(pointsize = 8)
 )
 library(lattice)
@@ -62,55 +60,67 @@ names(coef(fit1)[coef(fit1)[, 1] > 0, ])
 ```
 
 Now we will study the performance of the model. We are going to use
-Receiver Operating Characteristics of the model as well as a
+Receiver Operating Characteristics (ROC) of the model as well as a
 naive classification scheme wherein each observation is classified
 as the most prevalent category in the training set, namely
-``r names(which.max(table(train_y)))``.
+``r names(which.max(table(train_y)))``, which is equivalent to an Area Under
+the Curve (AUC) of 0.5.
 
-```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model (to the left) and naive model (to the right)."}
+```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model.", fig.width = 4, fig.height = 4.3}
 library(pROC)
 
-roc1 <- roc(test_y, as.vector(predict(fit1, test_x, type = "response")),
-            ci = TRUE)
-roc2 <- roc(test_y, rep(1, length(test_y)), ci = TRUE)
-par(mfrow = c(1, 2))
-plot(roc1)
-plot(roc2)
+roc <- roc(test_y, as.vector(predict(fit1, test_x, type = "response")),
+           ci = TRUE)
+plot(roc, print.auc = TRUE)
 ```
 
-The 95% confidence level for the Area Under the Curve (AUC) value for our
+The 95% confidence level for the AUC value for our
 lasso model is $[`r roc1$ci[1]`, `r roc1$ci[3]`]$, which
-is signficantly better than that of our naive predictions, which of course
-are 0.5 (with no variance).
+is signficantly better than that of our naive predictions.
 
 ## Medium
 
 In this part we are going to compare the performance of **glmnet** with
 that of **bigoptim** using **microbenchmark**. For this purpose,
 we are going to use the `covtype.libsvm` dataset from **bigoptim**
-and see how timings differ across numbers of columns and rows in the
-data. We will also study objective function values
+and see how timings differ depending on the numbers of columns and rows we
+use from the data. We will also study objective function values in the
+same fashion.
 
-Looking at the results from the simulation, we note that `glmnet()`
-converges when either the number of rows or columns are relatively low.
-As we add more observations (rows) or covariates (columns), however,
-the performance of the SAG algorithm.
+Looking at the results from the simulation, we note that `glmnet()` and
+`sag_fit()` (bigoptim) perform on par with one antother
+when either the number of rows or columns are relatively low.
+As we add more observations (rows) and covariates (columns), however,
+the SAG algorithm from **bigoptim** outperforms `glmnet()`.
 
 ```{r, fig.cap = "Speed of glmnet and bigoptim runs. Colors indicate execution time in logarithmized nanoseconds."}
-gradpal <- colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"))(100)
+gradpal <- colorRampPalette(RColorBrewer::brewer.pal(11, "RdBu"))(100)
+
+data_medium_diff <- data_medium %>%
+  gather("var", "value", time, loss) %>%
+  spread(package, value) %>%
+  mutate(diff = glmnet - sag) %>%
+  select(-glmnet, -sag) %>%
+  spread(var, diff)
+
+z <- max(abs(data_medium_diff$time))
+
 lattice::levelplot(
-  log(time) ~ cols*rows | package, 
-  data = data_medium,
+  time ~ cols*rows, 
+  data = data_medium_diff,
   asp = 1,
+  at = seq(-z, z, length.out = 20),
   col.regions = gradpal
 )
 ```
 
-```{r, fig.cap = "Objective function loss for glmnet and bigoptim. Colors indicate objective function loss."}
+```{r, fig.cap = "Difference in objective function loss for glmnet and bigoptim. Negative (red) values favor glmnet."}
+z <- max(abs(data_medium_diff$loss))
 lattice::levelplot(
-  loss ~ cols*rows | package,
-  data = data_medium,
+  loss ~ cols*rows,
+  data = data_medium_diff,
   asp = 1,
+  at = seq(-z, z, length.out = 20),
   col.regions = gradpal
 )
 ```
@@ -118,20 +128,33 @@ lattice::levelplot(
 
 ## Medium-hard
  
-```{r, fig.cap = "Speed of glmnet and scikit-learn (SAGA) runs. Colors indicate execution time in logarithmized nanoseconds."}
+```{r, fig.cap = "Difference in speed (in nanoseconds) of glmnet and scikit-learn (SAGA) runs. Negative (red) values favor glmnet."}
+data_mediumhard_diff <- data_mediumhard %>%
+  gather("var", "value", time, loss) %>%
+  spread(package, value) %>%
+  mutate(diff = glmnet - saga) %>%
+  select(-glmnet, -saga) %>%
+  spread(var, diff)
+
+z <- max(abs(data_mediumhard_diff$time))
+
 lattice::levelplot(
-  log(time) ~ cols*rows | package, 
-  data = data_mediumhard,
+  time ~ cols*rows, 
+  data = data_mediumhard_diff,
   asp = 1,
+  at = seq(-z, z, length.out = 20),
   col.regions = gradpal
 )
 ```
 
-```{r, fig.cap = "Objective function loss for glmnet and bigoptim. Colors indicate objective function loss."}
+```{r, fig.cap = "Difference in objective function loss between glmnet and bigoptim. Colors indicate objective function loss."}
+z <- max(abs(data_mediumhard_diff$loss))
+
 lattice::levelplot(
-  loss ~ cols*rows | package,
-  data = data_mediumhard,
+  loss ~ cols*rows, 
+  data = data_mediumhard_diff,
   asp = 1,
+  at = seq(-z, z, length.out = 20),
   col.regions = gradpal
 )
 ```
@@ -180,14 +203,22 @@ and is added as a unit test to the package, the result of which you
 can view [here](https://travis-ci.org/jolars/gsoc18saga).
 
 ```{r test}
+# fit a L1-regularized logistic regression
 x <- matrix(rnorm(100*20), 100, 20)
 y <- sample(1:2, 100, replace = TRUE)
-fit <- glmnet::cv.glmnet(x, y, family = "binomial")
+alpha <- 1
+fit <- glmnet::cv.glmnet(x, y, family = "binomial", alpha = alpha)
+
+# collect parameters
 lambda <- fit$lambda.1se
 beta0 <- coef(fit, lambda)[1]
 beta <- coef(fit, lambda)[-1]
-obj_r <- objective_r(beta0, beta, t(x), y, lambda, alpha = 1)
-obj_cpp <- objective_cpp(beta0, beta, t(x), y, lambda, alpha = 1)
+
+# compute objective function values
+obj_r <- objective_r(beta0, beta, t(x), y, lambda, alpha = alpha)
+obj_cpp <- objective_cpp(beta0, beta, t(x), y, lambda, alpha = alpha)
+
+# check for equality
 all.equal(obj_r, obj_cpp)
 ```
 
