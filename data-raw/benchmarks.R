@@ -65,8 +65,8 @@ data("covtype.libsvm")
 d <- covtype.libsvm
 d$X <- scale(d$X)
 
-nrows <- floor(seq(100, 40000, length.out = 20))
-ncols <- floor(seq(2, 40, length.out = 20))
+nrows <- floor(seq(100, 50000, length.out = 20))
+ncols <- floor(seq(2, 50, length.out = 20))
 data_medium <- data.frame(rows = integer(),
                           cols = integer(),
                           time = double(),
@@ -92,7 +92,7 @@ for (i in nrows) {
                                 yy,
                                 lambda = lambda,
                                 standardize = FALSE)},
-      times = 5
+      times = 10
     )
 
     sag_cost <- get_loss(sag_fit, xx, yy, alpha = 0, lambda = lambda)
@@ -161,12 +161,20 @@ for (i in nrows) {
                                      family = "binomial",
                                      standardize = FALSE)},
       saga = {saga_fit <- saga_model$fit(xx_py, yy_py)},
-      times = 5
+      times = 10
     )
 
-    saga_cost <- get_loss(saga_fit, xx, yy, alpha = 1, lambda = lambda,
+    saga_cost <- get_loss(saga_fit,
+                          xx,
+                          yy,
+                          alpha = 1,
+                          lambda = lambda,
                           intercept_in_x = FALSE)
-    glmnet_cost <- get_loss(glmnet_fit, xx, yy, alpha = 1, lambda = lambda,
+    glmnet_cost <- get_loss(glmnet_fit,
+                            xx,
+                            yy,
+                            alpha = 1,
+                            lambda = lambda,
                             intercept_in_x = FALSE)
 
     # summarize findings
