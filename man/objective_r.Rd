@@ -29,7 +29,7 @@ R-based objective function for L1- or L2-regularized logistic regression
 if (requireNamespace("glmnet")) {
   x <- matrix(rnorm(100*20), 100, 20)
   y <- sample(1:2, 100, replace = TRUE)
-  fit <- cv.glmnet(x, y, family = "binomial")
+  fit <- glmnet::cv.glmnet(x, y, family = "binomial")
   lambda <- fit$lambda.1se
   beta0 <- coef(fit, lambda)[1]
   beta <- coef(fit, lambda)[-1]
