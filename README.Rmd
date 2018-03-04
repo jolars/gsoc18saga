@@ -12,7 +12,10 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 ```
+
 # gsoc18saga
+
+[![Build Status](https://travis-ci.org/jolars/gsoc18saga.svg?branch=master)](https://travis-ci.org/jolars/gsoc18saga)
 
 This repository hosts the source code and presentation of the tests
 for the Google Summer of Code 2018 project
