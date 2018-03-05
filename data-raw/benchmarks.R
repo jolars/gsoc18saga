@@ -13,7 +13,7 @@ logloss <- function(beta0, beta, x, y, lambda, alpha = 0, n) {
 
   # compute penalty
   penalty <- 0.5*(1 - alpha)*sum(beta^2) + alpha*sum(abs(beta))
-  -loglik/n + lambda*penalty
+  -loglik/n + lambda*penalyt
 }
 
 # setup loss wrapper for glmnet, bigoptim, and sklearn
@@ -76,8 +76,10 @@ data_medium <- data.frame(rows = integer(),
 for (i in nrows) {
   for (j in ncols) {
     # add intercept and sample
-    xx <- cbind(rep.int(1, i), d$X[sample.int(i), sample.int(j)])
-    yy <- d$y[sample.int(i), , drop = FALSE]
+    si <- sample.int(i)
+    sj <- sample.int(j)
+    xx <- cbind(rep.int(1, i), d$X[si, sj])
+    yy <- d$y[si, , drop = FALSE]
     lambda <- 1/(1 + j)
 
     # compute timings
@@ -114,8 +116,10 @@ for (i in nrows) {
   }
 }
 
-# export raw data
+# convert time to microseconds
+data_medium$time <- data_medium$time/1000
 
+# export raw data
 devtools::use_data(data_medium, overwrite = TRUE)
 
 # Medium-Hard -------------------------------------------------------------
@@ -132,15 +136,15 @@ data_mediumhard <- data.frame(rows = integer(),
                               loss = double(),
                               package = character())
 
-maxit <- 1e2L
-
 d$y <- as.factor(d$y)
 
 for (i in nrows) {
   for (j in ncols) {
     # add intercept and sample
-    xx <- d$X[sample.int(i), sample.int(j), drop = FALSE]
-    yy <- d$y[sample.int(i)]
+    si <- sample.int(i)
+    sj <- sample.int(j)
+    xx <- d$X[si, sj]
+    yy <- d$y[si]
     lambda <- 1/j
     C <- 1/(i*lambda)
 
@@ -192,6 +196,9 @@ for (i in nrows) {
                              ))
   }
 }
+
+# convert time to microseconds
+data_mediumhard$time <- data_mediumhard$time/1000
 
 # export data
 devtools::use_data(data_mediumhard, overwrite = TRUE)
