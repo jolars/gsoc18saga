@@ -12,7 +12,11 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  message = FALSE,
+  warnings = FALSE,
   comment = "#>",
+  fig.width = 4,
+  fig.height = 3.7,
   dev.args = list(pointsize = 8)
 )
 library(lattice)
@@ -28,13 +32,15 @@ naive model that predicts the most frequent class.
 
 We begin by loading our libraries.
 
-```{r libraries}
+```{r libraries, message = FALSE}
 library(gsoc18saga)
 library(glmnet)
 library(ElemStatLearn)
 ```
 
-Next, we set up train and test partitions using the **caret** package.
+We will use the `ElemStatLearn::spam` dataset to try to classify email
+as either spam or regular email. We load the data and set up balanced 
+train and test partitions using the **caret** package.
 
 ```{r train}
 # extract the necessary data
@@ -50,51 +56,71 @@ test_x <- x[-train_id, ]
 test_y <- y[-train_id]
 
 # train the model
-fit1 <- glmnet::cv.glmnet(train_x, train_y, family = "binomial")
+fit <- glmnet::cv.glmnet(train_x, train_y, family = "binomial")
 ```
 
-The model's chosen factors are
+The model's chosen features are
 
 ```{r features}
-names(coef(fit1)[coef(fit1)[, 1] > 0, ])
+names(coef(fit)[coef(fit)[, 1] > 0, ])
 ```
 
-Now we will study the performance of the model. We are going to use
-Receiver Operating Characteristics (ROC) of the model as well as a
-naive classification scheme wherein each observation is classified
-as the most prevalent category in the training set, namely
-``r names(which.max(table(train_y)))``, which is equivalent to an Area Under
-the Curve (AUC) of 0.5.
+Next we'll examine the performance of the model using
+Receiver Operating Characteristics (ROC), Area Under the Curve (AUC), and
+test error. We'll compare the model against a
+naive classification scheme wherein we predict each observation (email) 
+to be the most prevalent category of the training set, namely.
+``r names(which.max(table(train_y)))``. 
 
-```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model.", fig.width = 4, fig.height = 4.3}
+```{r roc, fig.cap = "Receiver operating characteristic curves for the lasso model."}
 library(pROC)
 
-roc <- roc(test_y, as.vector(predict(fit1, test_x, type = "response")),
-           ci = TRUE)
-plot(roc, print.auc = TRUE)
+roc_glmnet <- roc(test_y,
+                  as.vector(predict(fit, test_x, type = "response")),
+                  ci = TRUE)
+roc_naive <- roc(test_y, rep(1, length(test_y)), ci = TRUE)
+
+plot(roc_glmnet, print.auc = TRUE)
 ```
 
 The 95% confidence level for the AUC value for our
-lasso model is $[`r roc1$ci[1]`, `r roc1$ci[3]`]$, which
-is signficantly better than that of our naive predictions.
+lasso model is $[`r roc_glmnet$ci[1]`, `r roc_glmnet$ci[3]`]$. We can compare
+the glmnet model to the naive model using DeLong's test
+
+```{r delong}
+roc.test(roc_glmnet, roc_naive)
+```
+
+which unsurprisingly shows that the glmnet model is significantly better. 
+Looking at the accuracy of the model, the naive model has an accuracy of 
+`r sum(test_y == "email")/length(test_y)` whilst the lasso model
+manages an accuracy of
+`r sum(predict(fit, test_x, type = "class") == test_y)/length(test_y)`.
 
 ## Medium
 
 In this part we are going to compare the performance of **glmnet** with
-that of **bigoptim** using **microbenchmark**. For this purpose,
-we are going to use the `covtype.libsvm` dataset from **bigoptim**
+that of **bigoptim** for L2-regularized model fits. For this purpose,
+we are going to use the `bigoptim::covtype.svm` data set and
 and see how timings differ depending on the numbers of columns and rows we
 use from the data. We will also study objective function values in the
 same fashion.
 
-Looking at the results from the simulation, we note that `glmnet()` and
-`sag_fit()` (bigoptim) perform on par with one antother
-when either the number of rows or columns are relatively low.
-As we add more observations (rows) and covariates (columns), however,
-the SAG algorithm from **bigoptim** outperforms `glmnet()`.
+The results for these simulations have been precomputed through code
+that is available at <https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R>. 
+The dataset is made part of this package and available as `gsoc18saga::data_medium`.
 
-```{r, fig.cap = "Speed of glmnet and bigoptim runs. Colors indicate execution time in logarithmized nanoseconds."}
+Looking at the results from the simulation, we note that `glmnet()` and
+`sag_fit()` (bigoptim) perform on par with one another
+when either the rows or columns are relatively few.
+As we add more observations (rows) and covariates (columns), however,
+the SAG algorithm from **bigoptim** outperforms `glmnet()` in speed.
+
+```{r, fig.cap = "Speed in microseconds of glmnet and bigoptim runs. Positive values (blue) favor bigoptim."}
 gradpal <- colorRampPalette(RColorBrewer::brewer.pal(11, "RdBu"))(100)
+
+library(tidyr)
+library(dplyr)
 
 data_medium_diff <- data_medium %>%
   gather("var", "value", time, loss) %>%
@@ -110,9 +136,14 @@ lattice::levelplot(
   data = data_medium_diff,
   asp = 1,
   at = seq(-z, z, length.out = 20),
-  col.regions = gradpal
+  col.regions = gradpal,
+  main = "Speed (glmnet - bigoptim)"
 )
 ```
+
+In terms of loss, however, we see that **bigoptim** suffers when
+there are many features in the model, particularly when the number of 
+observations are relatively low.
 
 ```{r, fig.cap = "Difference in objective function loss for glmnet and bigoptim. Negative (red) values favor glmnet."}
 z <- max(abs(data_medium_diff$loss))
@@ -121,14 +152,31 @@ lattice::levelplot(
   data = data_medium_diff,
   asp = 1,
   at = seq(-z, z, length.out = 20),
-  col.regions = gradpal
+  col.regions = gradpal,
+  main = "Loss (glmnet - bigoptim)"
 )
 ```
 
 
 ## Medium-hard
+
+This section is similar to the previous one but relates to 
+L1-regularization, rather than L2-regularization and instead compares 
+**glmnet** with the logistic regression fitter of the python **scikit-learn**
+module. In particular, we will look at the SAGA algorithm. As before,
+we will use the `bigoptim::covtype.svm` data set and fit models to
+feature matrices of increasing rows and columns. 
+
+The R package **reticulate** is used to interface with python in the 
+data simulations, which, as before, are featured at 
+<https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R>.
+The dataset is made part of this package and available as `gsoc18saga::data_mediumhard`.
+
+As in the comparison between **glmnet** and **bigoptim**, we again see
+the same pattern of decreasing performance for **glmnet** with
+large datasets.
  
-```{r, fig.cap = "Difference in speed (in nanoseconds) of glmnet and scikit-learn (SAGA) runs. Negative (red) values favor glmnet."}
+```{r, fig.cap = "Difference in speed (in microseconds) of glmnet and scikit-learn (SAGA) runs. Positive (blue) values favor scikit-learn."}
 data_mediumhard_diff <- data_mediumhard %>%
   gather("var", "value", time, loss) %>%
   spread(package, value) %>%
@@ -143,11 +191,19 @@ lattice::levelplot(
   data = data_mediumhard_diff,
   asp = 1,
   at = seq(-z, z, length.out = 20),
-  col.regions = gradpal
+  col.regions = gradpal,
+  main = "Speed (glmnet - scikit-learn)"
 )
 ```
 
-```{r, fig.cap = "Difference in objective function loss between glmnet and bigoptim. Colors indicate objective function loss."}
+Unlike in the previous section, however, the objective function values remain
+comparable between **glmnet** and **scikit-learn** for most dataset sizes.
+There is indeed an advantage for **glmnet** but it really only shows
+for the smallest feature matrix that we assessed with
+`r min(data_mediumhard$rows)`
+rows and `r min(data_mediumhard$cols)` columns.
+
+```{r, fig.cap = "Difference in objective function loss between glmnet and bigoptim. Negative (red) values favor glmnet."}
 z <- max(abs(data_mediumhard_diff$loss))
 
 lattice::levelplot(
@@ -155,9 +211,15 @@ lattice::levelplot(
   data = data_mediumhard_diff,
   asp = 1,
   at = seq(-z, z, length.out = 20),
-  col.regions = gradpal
+  col.regions = gradpal,
+  main = "Loss (glmnet - scikit-learn)"
 )
 ```
+
+Taken together, the results suggest that there *is* benefit to be gained from
+porting the SAGA algorithm to R. The benefit is perhaps even greater than
+demonstrated here, given that the simulations here carry some overhead 
+from having called python via R.
 
 ## Hard
 
@@ -198,9 +260,10 @@ double objective_cpp(double beta0,
 }
 ```
 
-The concurrence of the two functions is examplified through the following lines
-and is added as a unit test to the package, the result of which you
-can view [here](https://travis-ci.org/jolars/gsoc18saga).
+The concurrence of the two functions is examplified through the following lines,
+which have been added as a unit test to the package, the result of which you
+can view [here](https://travis-ci.org/jolars/gsoc18saga), as
+required by the GSoC test.
 
 ```{r test}
 # fit a L1-regularized logistic regression
