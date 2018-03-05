@@ -93,6 +93,7 @@ test_x &lt;-<span class="st"> </span>x[<span class="op">-</span>train_id, ]
 test_y &lt;-<span class="st"> </span>y[<span class="op">-</span>train_id]
 
 <span class="co"># train the model</span>
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
 fit &lt;-<span class="st"> </span>glmnet<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/glmnet/topics/cv.glmnet">cv.glmnet</a></span>(train_x, train_y, <span class="dt">family =</span> <span class="st">"binomial"</span>)</code></pre></div>
 <p>The model’s chosen features are</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">names</span>(<span class="kw">coef</span>(fit)[<span class="kw">coef</span>(fit)[, <span class="dv">1</span>] <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, ])
@@ -113,18 +114,18 @@ roc_naive &lt;-<span class="st"> </span><span class="kw"><a href="http://www.rdo
 Receiver operating characteristic curves for the lasso model.
 </p>
 </div>
-<p>The 95% confidence level for the AUC value for our lasso model is <span class="math inline">\([0.9565431, 0.9755785]\)</span>. We can compare the glmnet model to the naive model using DeLong’s test</p>
+<p>The 95% confidence level for the AUC value for our lasso model is <span class="math inline">\([0.9705949, 0.9853183]\)</span>. We can compare the glmnet model to the naive model using DeLong’s test</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="http://www.rdocumentation.org/packages/pROC/topics/roc.test">roc.test</a></span>(roc_glmnet, roc_naive)
 <span class="co">#&gt; </span>
 <span class="co">#&gt;  DeLong's test for two correlated ROC curves</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; data:  roc_glmnet and roc_naive</span>
-<span class="co">#&gt; Z = 95.975, p-value &lt; 2.2e-16</span>
+<span class="co">#&gt; Z = 127.25, p-value &lt; 2.2e-16</span>
 <span class="co">#&gt; alternative hypothesis: true difference in AUC is not equal to 0</span>
 <span class="co">#&gt; sample estimates:</span>
 <span class="co">#&gt; AUC of roc1 AUC of roc2 </span>
-<span class="co">#&gt;   0.9660608   0.5000000</span></code></pre></div>
-<p>which unsurprisingly shows that the glmnet model is significantly better. Looking at the accuracy of the model, the naive model has an accuracy of 0.606087 whilst the lasso model manages an accuracy of 0.9147826.</p>
+<span class="co">#&gt;   0.9779566   0.5000000</span></code></pre></div>
+<p>which unsurprisingly shows that the glmnet model is significantly better. Looking at the accuracy of the model, the naive model has an accuracy of 0.606087 whilst the lasso model manages an accuracy of 0.9286957.</p>
 </div>
 <div id="medium" class="section level2">
 <h2 class="hasAnchor">
