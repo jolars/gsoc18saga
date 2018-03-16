@@ -1,98 +1,71 @@
-read.libsvm <- function(filename, sparse = TRUE, dims = NULL) {
-  content <- readLines(filename)
-  num_lines <- length(content)
-  space_ind <- regexpr('\\s+', content)
-  tomakemat <- cbind(1:num_lines, -1, substr(content, 1, space_ind - 1))
-
-  # loop over lines
-  makemat <- rbind(tomakemat,
-                   do.call(rbind,
-                           lapply(1:num_lines, function(i) {
-                             # split by spaces, remove lines
-                             line <-
-                               as.vector(strsplit(content[i], ' ')[[1]])
-                             cbind(i, t(simplify2array(strsplit(line[-1],
-                                                                ':'))))
-                           })))
-  class(makemat) <- "numeric"
-
-  if (!is.null(dims)) {
-    yx <- sparseMatrix(
-      i = makemat[, 1],
-      j = makemat[, 2] + 2,
-      x = makemat[, 3],
-      dims = dims
-    )
-  } else {
-    yx <- sparseMatrix(i = makemat[, 1],
-                       j = makemat[, 2] + 2,
-                       x = makemat[, 3])
-  }
-
-  if (!sparse)
-    yx <- as(yx, 'matrix')
-  yx
-}
-
-rowl2norm <- function(x) {
-  rs <- 1/sqrt(rowSums(x^2))
-  Diagonal(x = rs) %*% x
-}
-
-rownorm <- function(x) {
-  rs <- 1/rowSums(x)
-  Diagonal(x = rs) %*% x
-}
-
-
 # IJCNN1 ------------------------------------------------------------------
 
 download.file(
-  'http://www.csie.ntu.edu.tw/%7Ecjlin/libsvmtools/datasets/binary/ijcnn1.bz2',
-  'ijcnn1.bz2'
+  "http://www.csie.ntu.edu.tw/%7Ecjlin/libsvmtools/datasets/binary/ijcnn1.bz2",
+  "ijcnn1.bz2"
 )
-ijcnn1 <- read.libsvm(bzfile('ijcnn1.bz2'))
-X <- ijcnn1[, -1]
-y <- ijcnn1[, 1]
-X <- rowl2norm(X)
-ijcnn1 <- list(X = X, y = y)
-devtools::use_data(ijcnn1)
-
+ijcnn1 <- e1071::read.matrix.csr(bzfile("ijcnn1.bz2"), fac = FALSE)
+devtools::use_data(ijcnn1, overwrite = TRUE, internal = TRUE)
+unlink("ijcnn1.bz2")
 
 # a9a ---------------------------------------------------------------------
 
 download.file(
-  'https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a',
-  'a9a'
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a",
+  "a9a"
 )
 a9a <- e1071::read.matrix.csr("a9a", fac = FALSE)
-X <- as.matrix(a9a$x)
-y <- a9a$y
-a9a <- list(X = X, y = y)
-devtools::use_data(a9a)
-
+devtools::use_data(a9a, overwrite = TRUE, internal = TRUE)
+unlink("a9a")
 
 # phishing ----------------------------------------------------------------
 
 download.file(
-  'https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/phishing',
-  'phishing'
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/phishing",
+  "phishing"
 )
 phishing <- e1071::read.matrix.csr("phishing", fac = FALSE)
-X <- as.matrix(phishing$x)
-y <- phishing$y
-phishing <- list(X = X, y = y)
-devtools::use_data(phishing)
-
+devtools::use_data(phishing, overwrite = TRUE, internal = TRUE)
+unlink("phishing")
 
 # w8a ---------------------------------------------------------------------
 
 download.file(
-  'https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a',
-  'w8a'
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a",
+  "w8a"
 )
-w8a <- e1071::read.matrix.scr("w8a", fac = FALSE)
-X <- as.matrix(w8a$X)
-y <- w8a$y
-w8a <- list(X = X, y = y)
-devtools::use_data(w8a)
+w8a <- e1071::read.matrix.csr("w8a", fac = FALSE)
+devtools::use_data(w8a, overwrite = TRUE, internal = TRUE)
+unlink("w8a")
+
+# covtype -----------------------------------------------------------------
+
+download.file(
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/covtype.libsvm.binary.scale.bz2",
+  "covtype.libsvm.binary.scale.bz2"
+)
+covtype <- e1071::read.matrix.csr(bzfile("covtype.libsvm.binary.scale.bz2"), fac = FALSE)
+devtools::use_data(covtype, overwrite = TRUE, internal = TRUE)
+unlink("covtype.libsvm.binary.scale.bz2")
+
+#
+# # susy --------------------------------------------------------------------
+#
+# download.file(
+#   "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/SUSY.bz2",
+#   "SUSY.bz2"
+# )
+# susy <- e1071::read.matrix.csr(bzfile("SUSY.bz2"), fac = FALSE)
+# susy <- list(X = SparseM::as.matrix(susy$x), y = susy$y)
+# devtools::use_data(susy)
+# unlink("SUSY.bz2")
+
+# skin --------------------------------------------------------------------
+
+download.file(
+  "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/skin_nonskin",
+  "skin_nonskin"
+)
+skin <- e1071::read.matrix.csr("skin_nonskin", fac = FALSE)
+devtools::use_data(skin, overwrite = TRUE, internal = TRUE)
+unlink("skin_nonskin")

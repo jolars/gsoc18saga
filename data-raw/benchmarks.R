@@ -160,7 +160,8 @@ datasets <- list(
   phishing = phishing,
   ijcnn1 = ijcnn1,
   spam = list(X = spam[, -ncol(spam)],
-              y = spam$spam)
+              y = spam$spam),
+  w8a = w8a
 )
 
 maxit_seq <- floor(c(1, 2, 3, 4, c(seq(5, 200, by = 5))))
