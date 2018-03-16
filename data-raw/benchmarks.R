@@ -22,7 +22,7 @@ get_loss <- function(fit,
                      x,
                      y,
                      alpha = 0,
-                     lambda = NULL,
+                     lambda,
                      intercept_in_x = TRUE) {
   if (intercept_in_x)
     x <- x[, -1, drop = FALSE]
@@ -30,30 +30,25 @@ get_loss <- function(fit,
   # tidy up data
   n <- NROW(x)
   x <- t(x)
-  y <- as.numeric(y)
+  y <- as.vector(as.numeric(y))
   y[y == min(y)] <- 0
   y[y > min(y)] <- 1
 
   # retrieve lambda, beta0
   if (inherits(fit, "SAG_fit")) {
-    beta <- as.matrix(fit$w[-1])
+    beta <- fit$w[-1]
     beta0 <- fit$w[1]
-    lambda <- fit$input$lambda
   } else if (inherits(fit, "lognet")) {
-    if (is.null(lambda))
-      lambda <- fit$lambda
     if (intercept_in_x) {
-      beta <- as.matrix(coef(fit, s = lambda))[-c(1, 2), , drop = FALSE]
-      beta0 <- as.matrix(coef(fit, s = lambda))[2]
+      beta <- as.matrix(fit$beta[-1, , drop = FALSE])
+      beta0 <- fit$beta[1]
     } else {
-      beta <- as.matrix(coef(fit, s = lambda))[-1, , drop = FALSE]
-      beta0 <- as.matrix(coef(fit, s = lambda))[1]
+      beta <- fit$beta
+      beta0 <- fit$a0
     }
   } else if (inherits(fit, "sklearn.linear_model.logistic.LogisticRegression")) {
-    C <- fit$C
-    lambda <- 1/(n*C)
     beta <- t(fit$coef_)
-    beta0 <- fit$intercept_
+    beta0 <- as.vector(fit$intercept_)
   }
   logloss(beta0, beta, x, y, lambda, alpha)
 }
@@ -126,45 +121,50 @@ devtools::use_data(data_medium, overwrite = TRUE)
 
 # Medium-Hard -------------------------------------------------------------
 
-saga_path <- function(X, y, C, maxit = 10) {
-  model <- sklearn$linear_model$LogisticRegression(solver = "saga",
-                                                   max_iter = maxit,
-                                                   penalty = "l1",
-                                                   warm_start = TRUE,
-                                                   fit_intercept = TRUE)
-  n <- length(C)
-  beta <- matrix(NA, ncol = n, nrow = ncol(X))
-  a0 <- double(n)
-  X_py <- reticulate::r_to_py(X)
-  y_py <- reticulate::r_to_py(y)
-  for (i in seq_along(C)) {
-    model$set_params(C = C[i])
-    model$fit(X_py, y_py)
-    beta[, i] <- model$coef_
-    a0[i] <- model$intercept_
-  }
-  list(a0 = a0, beta = beta)
-}
+# saga_path <- function(X, y, C, maxit = 10) {
+#   model <- sklearn$linear_model$LogisticRegression(solver = "saga",
+#                                                    max_iter = maxit,
+#                                                    penalty = "l1",
+#                                                    warm_start = TRUE,
+#                                                    fit_intercept = TRUE)
+#   n <- length(C)
+#   beta <- matrix(NA, ncol = n, nrow = ncol(X))
+#   a0 <- double(n)
+#   X_py <- reticulate::r_to_py(X)
+#   y_py <- reticulate::r_to_py(y)
+#   for (i in seq_along(C)) {
+#     model$set_params(C = C[i])
+#     model$fit(X_py, y_py)
+#     beta[, i] <- model$coef_
+#     a0[i] <- model$intercept_
+#   }
+#   list(a0 = a0, beta = beta)
+# }
 
 library(reticulate)
 sklearn <- import("sklearn")
 numpy <- import("numpy")
-py_set_seed(1)
-set.seed(1)
 
 # load datasets
 data("covtype.libsvm", package = "bigoptim")
-data("rcv1_train", package = "bigoptim")
 covtype.libsvm$X <- scale(covtype.libsvm$X)
 data("spam", package = "ElemStatLearn")
-data(LetterRecognition, package = "mlbench")
+spam$spam <- as.numeric(spam$spam)
+spam$spam[spam$spam == min(spam$spam)] <- -1
+spam$spam[spam$spam > min(spam$spam)] <- 1
+spam[, -ncol(spam)] <- scale(spam[, -ncol(spam)])
 
+datasets <- list(
+  covertype = covtype.libsvm,
+  a9a = a9a,
+  phishing = phishing,
+  ijcnn1 = ijcnn1,
+  spam = list(X = spam[, -ncol(spam)],
+              y = spam$spam)
+)
 
-datasets <- list(covertype = covtype.libsvm,
-                 spam = list(X = spam[, -ncol(spam)],
-                             y = spam$spam))
-
-maxit_seq <- floor(seq(1, 20, length.out = 10))
+maxit_seq <- floor(c(1, 2, 3, 4, c(seq(5, 200, by = 5))))
+tol_seq <- cumprod(seq(0.9, 0.1, length.out = 20))
 
 # setup model
 data_mediumhard <- data.frame(dataset = character(),
@@ -176,14 +176,17 @@ data_mediumhard <- data.frame(dataset = character(),
 for (i in seq_along(datasets)) {
   cat("dataset:", names(datasets)[i], "\n")
   X <- as.matrix(datasets[[i]]$X)
-  y <- as.numeric(datasets[[i]]$y)
+  y <- as.vector(datasets[[i]]$y)
   n_obs <- nrow(X)
 
   lambda <- 1/n_obs
   C <- 1/(n_obs*lambda)
 
-  for (maxit in maxit_seq) {
-    cat("maxit:", maxit, "\n")
+  for (j in seq_along(tol_seq)) {
+    set.seed(j*i)
+    reticulate::py_set_seed(j*i)
+    #cat("maxit:", maxit_seq[j], "\n")
+    cat("tolerance:", tol_seq[j], "\n")
     # glmnet_time <- system.time({
     #   glmnet_fit <- glmnet(X,
     #                        y,
@@ -220,12 +223,12 @@ for (i in seq_along(datasets)) {
     # }
 
     glmnet_time <- system.time({
-      glmnet_fit <- glmnet(X,
-                           y,
-                           maxit = maxit*10,
-                           lambda = lambda,
-                           family = "binomial",
-                           standardize = FALSE)
+      glmnet_fit <- glmnet::glmnet(X,
+                                   y,
+                                   thresh = tol_seq[j],
+                                   lambda = lambda,
+                                   family = "binomial",
+                                   standardize = FALSE)
 
     })
 
@@ -238,20 +241,20 @@ for (i in seq_along(datasets)) {
       intercept_in_x = FALSE
     )
 
-    model <- sklearn$linear_model$LogisticRegression(solver = "saga",
-                                                     max_iter = maxit,
-                                                     penalty = "l1",
-                                                     C = C,
-                                                     warm_start = TRUE,
-                                                     fit_intercept = TRUE)
-    X_py <- reticulate::r_to_py(X)
+    saga_fit <- sklearn$linear_model$LogisticRegression(solver = "saga",
+                                                        penalty = "l1",
+                                                        tol = tol_seq[j],
+                                                        C = C,
+                                                        warm_start = TRUE,
+                                                        fit_intercept = TRUE)
+    X_py <- reticulate::r_to_py(as.matrix(X))
     y_py <- reticulate::r_to_py(y)
     saga_time <- system.time({
-      model$fit(X_py, y_py)
+      saga_fit$fit(X_py, y_py)
     })
 
     saga_loss <- get_loss(
-      model,
+      saga_fit,
       X,
       y,
       alpha = 1,
