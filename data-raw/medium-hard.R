@@ -1,59 +1,50 @@
-# setup glmnet-like objective function
-logloss <- function(beta0, beta, x, y, lambda, alpha = 1) {
+# setup loss wrapper
+get_loss <- function(fit,
+                     X,
+                     y,
+                     lambda,
+                     alpha = 1) {
+  # tidy up data
+  n <- NROW(X)
+  X <- t(X)
+  y <- as.vector(as.numeric(y))
+  y[y == min(y)] <- 0
+  y[y > min(y)] <- 1
+  beta <- t(fit$coef_)
+  beta0 <- as.vector(fit$intercept_)
+
   n <- length(y)
   # binomial loglikelihood
-  loglik <- sum(y*(beta0 + crossprod(x, beta)) -
-                  log(1 + exp(beta0 + crossprod(x, beta))))
+  cXb <- crossprod(X, beta)
+  loglik <- sum(y*(beta0 + cXb) - log(1 + exp(beta0 + cXb)))
 
   # compute penalty
   penalty <- 0.5*(1 - alpha)*sum(beta^2) + alpha*sum(abs(beta))
   -loglik/n + lambda*penalty
 }
 
-# setup loss wrapper for glmnet, bigoptim, and sklearn
-get_loss <- function(fit,
-                     x,
-                     y,
-                     lambda,
-                     alpha = 1) {
-  # tidy up data
-  n <- NROW(x)
-  x <- t(x)
-  y <- as.vector(as.numeric(y))
-  y[y == min(y)] <- 0
-  y[y > min(y)] <- 1
-
-  # retrieve lambda, beta0
-  if (inherits(fit, "lognet")) {
-    beta <- as.matrix(fit$beta)
-    beta0 <- as.vector(fit$a0)
-  } else if (inherits(fit, "sklearn.linear_model.logistic.LogisticRegression")) {
-    beta <- t(fit$coef_)
-    beta0 <- as.vector(fit$intercept_)
-  }
-  logloss(beta0, beta, x, y, lambda, alpha)
-}
-
-
+library(SparseM)
 library(reticulate)
+use_python("/opt/anaconda3/bin/python3")
+
 sklearn <- import("sklearn")
 numpy <- import("numpy")
-
-library(SparseM)
+glmnet_py <- import("glmnet")
 
 # load datasets
 datasets <- list(
+  mushrooms = mushrooms,
   covtype = covtype,
   a9a = a9a,
   phishing = phishing,
   ijcnn1 = ijcnn1,
-  susy = susy,
-  w8a = w8a,
-  skin = skin
+  skin_nonskin = skin_nonskin
 )
 
 # setup tolerance sequence to iterate over
-tol_seq <- cumprod(seq(0.9, 0.1, length.out = 20))
+n_tol <- 50
+saga_tol <- signif(dexp(seq(0, 8, length.out = n_tol), rate = 0.9), 2)
+glmnet_tol <- signif(dexp(seq(0, 13, length.out = n_tol), rate = 0.9), 2)
 
 # setup result data.frame
 data_mediumhard <- data.frame(dataset = character(),
@@ -63,38 +54,39 @@ data_mediumhard <- data.frame(dataset = character(),
 
 # compute timings
 for (i in seq_along(datasets)) {
-  cat("dataset:", names(datasets)[i], "\n")
-  X <- as.matrix(datasets[[i]]$X)
-  y <- as.vector(datasets[[i]]$y)
+  cat(names(datasets)[i], "\n")
+  X <- as.matrix(datasets[[i]]$x)
+  y <- datasets[[i]]$y
   n_obs <- nrow(X)
 
   lambda <- 1/n_obs
   C <- 1/(n_obs*lambda)
 
-  for (j in seq_along(tol_seq)) {
+  X_py <- reticulate::r_to_py(X)
+  y_py <- reticulate::r_to_py(y)
+
+  for (j in seq_len(n_tol)) {
     set.seed(j*i)
     reticulate::py_set_seed(j*i)
-    cat("tolerance:", tol_seq[j], "\n")
+    cat("\r", j, "/", n_tol)
+    flush.console()
+    if (j == n_tol)
+      cat("\n")
+
+    glmnet_fit <- glmnet_py$LogitNet(lambda_path = as.matrix(lambda),
+                                     tol = glmnet_tol[j],
+                                     standardize = FALSE,
+                                     fit_intercept = TRUE)
 
     glmnet_time <- system.time({
-      glmnet_fit <- glmnet::glmnet(X,
-                                   y,
-                                   thresh = tol_seq[j],
-                                   lambda = lambda,
-                                   family = "binomial",
-                                   standardize = FALSE)
-
+      glmnet_fit$fit(X_py, y_py)
     })
-
 
     saga_fit <- sklearn$linear_model$LogisticRegression(solver = "saga",
                                                         penalty = "l1",
-                                                        tol = tol_seq[j],
+                                                        tol = saga_tol[j],
                                                         C = C,
-                                                        #warm_start = TRUE,
                                                         fit_intercept = TRUE)
-    X_py <- reticulate::r_to_py(as.matrix(X))
-    y_py <- reticulate::r_to_py(y)
     saga_time <- system.time({
       saga_fit$fit(X_py, y_py)
     })
@@ -114,8 +106,15 @@ for (i in seq_along(datasets)) {
 }
 
 data_mediumhard <- data_mediumhard[order(data_mediumhard$time), ]
-lattice::xyplot(loss ~ time | dataset, type = "b",
-                data_mediumhard,
-                groups = package,
-                scales = list(relation = "free"),
-                auto.key = list(lines = TRUE, points = TRUE))
+# library(lattice)
+# library(latticeExtra)
+# lattice::xyplot(loss ~ time | dataset,
+#                 data_mediumhard,
+#                 xlab = "Time (s)",
+#                 ylanb = "Objective loss",
+#                 groups = package,
+#                 scales = list(relation = "free"),
+#                 auto.key = list(lines = TRUE, points = TRUE)) +
+#   glayer(panel.smoother(..., span = 0.5))
+
+devtools::use_data(data_mediumhard, overwrite = TRUE)
