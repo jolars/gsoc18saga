@@ -12,9 +12,6 @@
 \item{loss}{value of objective function}
 \item{package}{package}
 }}
-\source{
-https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
-}
 \usage{
 data_medium
 }

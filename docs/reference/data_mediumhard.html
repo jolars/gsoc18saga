@@ -18,6 +18,8 @@
 <!-- Font Awesome icons -->
 <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 
+<!-- clipboard.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -25,6 +27,14 @@
 <script src="../pkgdown.js"></script>
   
   
+<meta property="og:title" content="Benchmarks for medium-hard task — data_mediumhard" />
+
+<meta property="og:description" content="A benchmark of SAGA L1-regularized logistic regression in the
+scikit-learn python package and the python version of
+glmnet based
+on subsets of the covtype, ijcnn1, a9a, mushrooms,
+skin_noskin, and phishing datasets." />
+<meta name="twitter:card" content="summary" />
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -91,9 +101,11 @@
     </div>
 
     
-    <p>A benchmark of L1-regularized logistic regression in the
-<span class="pkg">scikit-learn</span> python package and <span class="pkg">glmnet</span> R package based
-on subsets of the <a href='http://www.rdocumentation.org/packages/bigoptim/topics/covtype.libsvm'>bigoptim::covtype.libsvm</a> dataset.</p>
+    <p>A benchmark of SAGA L1-regularized logistic regression in the
+<span class="pkg">scikit-learn</span> python package and the python version of
+<span class="pkg">glmnet</span> based
+on subsets of the <a href='covtype.html'>covtype</a>, <a href='ijcnn1.html'>ijcnn1</a>, <a href='a9a.html'>a9a</a>, <a href='mushrooms.html'>mushrooms</a>,
+skin_noskin, and <a href='phishing.html'>phishing</a> datasets.</p>
     
 
     <pre class="usage"><span class='no'>data_mediumhard</span></pre>
@@ -101,11 +113,10 @@ on subsets of the <a href='http://www.rdocumentation.org/packages/bigoptim/topic
     <h2 class="hasAnchor" id="format"><a class="anchor" href="#format"></a>Format</h2>
 
     <p>A data frame with 800 rows and 5 variables:</p><dl class='dl-horizontal'>
-<dt>rows</dt><dd><p>number of rows in data</p></dd>
-<dt>cols</dt><dd><p>number of columns in data</p></dd>
-<dt>time</dt><dd><p>time in nanoseconds</p></dd>
+<dt>dataset</dt><dd><p>dataset</p></dd>
+<dt>package</dt><dd><p>package, glmnet or saga</p></dd>
+<dt>time</dt><dd><p>runtime in seconds</p></dd>
 <dt>loss</dt><dd><p>value of objective function</p></dd>
-<dt>package</dt><dd><p>package</p></dd>
 </dl>
     
 
@@ -134,3 +145,4 @@ on subsets of the <a href='http://www.rdocumentation.org/packages/bigoptim/topic
 
   </body>
 </html>
+

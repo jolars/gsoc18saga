@@ -11,9 +11,6 @@
 \item{time}{runtime in seconds}
 \item{loss}{value of objective function}
 }}
-\source{
-https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
-}
 \usage{
 data_mediumhard
 }

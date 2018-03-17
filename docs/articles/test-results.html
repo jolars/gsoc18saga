@@ -8,8 +8,11 @@
 <title>GSoC 2018 SAGA project test results • gsoc18saga</title>
 <!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
-<!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script><script src="../pkgdown.js"></script><!-- mathjax --><script src="https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--[if lt IE 9]>
+<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
+<script src="../jquery.sticky-kit.min.js"></script><script src="../pkgdown.js"></script><meta property="og:title" content="GSoC 2018 SAGA project test results">
+<meta property="og:description" content="">
+<meta name="twitter:card" content="summary">
+<!-- mathjax --><script src="https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
@@ -65,7 +68,7 @@
       <h1>GSoC 2018 SAGA project test results</h1>
                         <h4 class="author">Johan Larsson</h4>
             
-            <h4 class="date">2018-03-05</h4>
+            <h4 class="date">2018-03-17</h4>
           </div>
 
     
@@ -97,9 +100,9 @@ test_y &lt;-<span class="st"> </span>y[<span class="op">-</span>train_id]
 fit &lt;-<span class="st"> </span>glmnet<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/glmnet/topics/cv.glmnet">cv.glmnet</a></span>(train_x, train_y, <span class="dt">family =</span> <span class="st">"binomial"</span>)</code></pre></div>
 <p>The model’s chosen features are</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">names</span>(<span class="kw">coef</span>(fit)[<span class="kw">coef</span>(fit)[, <span class="dv">1</span>] <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, ])
-<span class="co">#&gt;  [1] "A.3"  "A.4"  "A.5"  "A.6"  "A.7"  "A.8"  "A.9"  "A.10" "A.14" "A.15"</span>
-<span class="co">#&gt; [11] "A.16" "A.17" "A.18" "A.19" "A.20" "A.21" "A.22" "A.23" "A.24" "A.28"</span>
-<span class="co">#&gt; [21] "A.36" "A.52" "A.53" "A.54" "A.56" "A.57"</span></code></pre></div>
+<span class="co">#&gt;  [1] "A.3"  "A.4"  "A.5"  "A.6"  "A.7"  "A.8"  "A.9"  "A.10" "A.15" "A.16"</span>
+<span class="co">#&gt; [11] "A.17" "A.18" "A.19" "A.20" "A.21" "A.22" "A.23" "A.24" "A.36" "A.52"</span>
+<span class="co">#&gt; [21] "A.53" "A.54" "A.56" "A.57"</span></code></pre></div>
 <p>Next we’ll examine the performance of the model using Receiver Operating Characteristics (ROC), Area Under the Curve (AUC), and test error. We’ll compare the model against a naive classification scheme wherein we predict each observation (email) to be the most prevalent category of the training set, namely. <code>email</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(pROC)
 
@@ -114,24 +117,24 @@ roc_naive &lt;-<span class="st"> </span><span class="kw"><a href="http://www.rdo
 Receiver operating characteristic curves for the lasso model.
 </p>
 </div>
-<p>The 95% confidence level for the AUC value for our lasso model is <span class="math inline">\([0.9705949, 0.9853183]\)</span>. We can compare the glmnet model to the naive model using DeLong’s test</p>
+<p>The 95% confidence level for the AUC value for our lasso model is <span class="math inline">\([0.955414, 0.9760234]\)</span>. We can compare the glmnet model to the naive model using DeLong’s test</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="http://www.rdocumentation.org/packages/pROC/topics/roc.test">roc.test</a></span>(roc_glmnet, roc_naive)
 <span class="co">#&gt; </span>
 <span class="co">#&gt;  DeLong's test for two correlated ROC curves</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; data:  roc_glmnet and roc_naive</span>
-<span class="co">#&gt; Z = 127.25, p-value &lt; 2.2e-16</span>
+<span class="co">#&gt; Z = 88.58, p-value &lt; 2.2e-16</span>
 <span class="co">#&gt; alternative hypothesis: true difference in AUC is not equal to 0</span>
 <span class="co">#&gt; sample estimates:</span>
 <span class="co">#&gt; AUC of roc1 AUC of roc2 </span>
-<span class="co">#&gt;   0.9779566   0.5000000</span></code></pre></div>
-<p>which unsurprisingly shows that the glmnet model is significantly better. Looking at the accuracy of the model, the naive model has an accuracy of 0.606087 whilst the lasso model manages an accuracy of 0.9286957.</p>
+<span class="co">#&gt;   0.9657187   0.5000000</span></code></pre></div>
+<p>which unsurprisingly shows that the glmnet model is significantly better. Looking at the accuracy of the model, the naive model has an accuracy of 0.606087 whilst the lasso model manages an accuracy of 0.9313043.</p>
 </div>
 <div id="medium" class="section level2">
 <h2 class="hasAnchor">
 <a href="#medium" class="anchor"></a>Medium</h2>
-<p>In this part we are going to compare the performance of <strong>glmnet</strong> with that of <strong>bigoptim</strong> for L2-regularized model fits. For this purpose, we are going to use the <code>bigoptim::covtype.svm</code> data set and and see how timings differ depending on the numbers of columns and rows we use from the data. We will also study objective function values in the same fashion.</p>
-<p>The results for these simulations have been precomputed through code that is available at <a href="https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R" class="uri">https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R</a>. The dataset is made part of this package and available as <code><a href="http://www.rdocumentation.org/packages/gsoc18saga/topics/data_medium">gsoc18saga::data_medium</a></code>.</p>
+<p>In this part we are going to compare the performance of <strong>glmnet</strong> with that of <strong>bigoptim</strong> for L2-regularized model fits. For this purpose, we are going to use the <code>gsoc18saga::covertype</code> data set and and see how timings differ depending on the numbers of columns and rows we use from the data. We will also study objective function values in the same fashion.</p>
+<p>The results for these simulations have been precomputed through code that is available at <a href="https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium.R" class="uri">https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium.R</a>. The dataset is made part of this package and available as <code><a href="../reference/data_medium.html">gsoc18saga::data_medium</a></code>.</p>
 <p>Looking at the results from the simulation, we note that <code><a href="http://www.rdocumentation.org/packages/glmnet/topics/glmnet">glmnet()</a></code> and <code>sag_fit()</code> (bigoptim) perform on par with one another when either the rows or columns are relatively few. As we add more observations (rows) and covariates (columns), however, the SAG algorithm from <strong>bigoptim</strong> outperforms <code><a href="http://www.rdocumentation.org/packages/glmnet/topics/glmnet">glmnet()</a></code> in speed.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">gradpal &lt;-<span class="st"> </span><span class="kw">colorRampPalette</span>(RColorBrewer<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/RColorBrewer/topics/ColorBrewer">brewer.pal</a></span>(<span class="dv">11</span>, <span class="st">"RdBu"</span>))(<span class="dv">100</span>)
 
@@ -179,48 +182,64 @@ Difference in objective function loss for glmnet and bigoptim. Negative (red) va
 <div id="medium-hard" class="section level2">
 <h2 class="hasAnchor">
 <a href="#medium-hard" class="anchor"></a>Medium-hard</h2>
-<p>This section is similar to the previous one but relates to L1-regularization, rather than L2-regularization and instead compares <strong>glmnet</strong> with the logistic regression fitter of the python <strong>scikit-learn</strong> module. In particular, we will look at the SAGA algorithm. As before, we will use the <code>bigoptim::covtype.svm</code> data set and fit models to feature matrices of increasing rows and columns.</p>
-<p>The R package <strong>reticulate</strong> is used to interface with python in the data simulations, which, as before, are featured at <a href="https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R" class="uri">https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R</a>. The dataset is made part of this package and available as <code><a href="http://www.rdocumentation.org/packages/gsoc18saga/topics/data_mediumhard">gsoc18saga::data_mediumhard</a></code>.</p>
-<p>As in the comparison between <strong>glmnet</strong> and <strong>bigoptim</strong>, we again see the same pattern of decreasing performance for <strong>glmnet</strong> with large datasets.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data_mediumhard_diff &lt;-<span class="st"> </span>data_mediumhard <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw"><a href="http://www.rdocumentation.org/packages/tidyr/topics/gather">gather</a></span>(<span class="st">"var"</span>, <span class="st">"value"</span>, time, loss) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw"><a href="http://www.rdocumentation.org/packages/tidyr/topics/spread">spread</a></span>(package, value) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/mutate.html">mutate</a></span>(<span class="dt">diff =</span> glmnet <span class="op">-</span><span class="st"> </span>saga) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/select.html">select</a></span>(<span class="op">-</span>glmnet, <span class="op">-</span>saga) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw"><a href="http://www.rdocumentation.org/packages/tidyr/topics/spread">spread</a></span>(var, diff)
-
-z &lt;-<span class="st"> </span><span class="kw">max</span>(<span class="kw">abs</span>(data_mediumhard_diff<span class="op">$</span>time))
-
-lattice<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/lattice/topics/levelplot">levelplot</a></span>(
-  time <span class="op">~</span><span class="st"> </span>cols<span class="op">*</span>rows, 
-  <span class="dt">data =</span> data_mediumhard_diff,
-  <span class="dt">asp =</span> <span class="dv">1</span>,
-  <span class="dt">at =</span> <span class="kw">seq</span>(<span class="op">-</span>z, z, <span class="dt">length.out =</span> <span class="dv">20</span>),
-  <span class="dt">col.regions =</span> gradpal,
-  <span class="dt">main =</span> <span class="st">"Speed (glmnet - scikit-learn)"</span>
-)</code></pre></div>
+<p>This section is similar to the previous one but relates to L1-regularization, rather than L2-regularization and instead compares <strong>glmnet</strong> with the logistic regression fitter of the python <strong>scikit-learn</strong> module. In particular, we will look at the SAGA algorithm. This time around, we will look at six different datasets:</p>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Name</th>
+<th align="right">Observations</th>
+<th align="right">Features</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">icjnn1</td>
+<td align="right">49,990</td>
+<td align="right">22</td>
+</tr>
+<tr class="even">
+<td align="left">a9a</td>
+<td align="right">32,561</td>
+<td align="right">123</td>
+</tr>
+<tr class="odd">
+<td align="left">phishing</td>
+<td align="right">11,055</td>
+<td align="right">68</td>
+</tr>
+<tr class="even">
+<td align="left">mushroooms</td>
+<td align="right">8,124</td>
+<td align="right">112</td>
+</tr>
+<tr class="odd">
+<td align="left">covtype</td>
+<td align="right">581,012</td>
+<td align="right">54</td>
+</tr>
+<tr class="even">
+<td align="left">skin_nonskin</td>
+<td align="right">245,057</td>
+<td align="right">3</td>
+</tr>
+</tbody>
+</table>
+<p>All of these have been collected from the <a href="https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html">libsvm binary dataset collection</a>.</p>
+<p>The R package <strong>reticulate</strong> is used to interface with python in the data simulations, which, are featured at <a href="https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium-hard.R" class="uri">https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium-hard.R</a>. The dataset is made part of this package and available as <code><a href="../reference/data_mediumhard.html">gsoc18saga::data_mediumhard</a></code>.</p>
+<p>To put the two packages on equal footing, we now instead use the python-based implementation of <strong>glmnet</strong> to circumvent the possible overhead that calling python from R might introduce. For each dataset in our comparison, we iterate across a range of tolerance values (stopping criteria) for the optimizers in the two algorithms and collect the objective loss for each algorithm as well as the runtime at which they terminate.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(latticeExtra)
+lattice<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/lattice/topics/xyplot">xyplot</a></span>(loss <span class="op">~</span><span class="st"> </span>time <span class="op">|</span><span class="st"> </span>dataset,
+                data_mediumhard,
+                <span class="dt">xlab =</span> <span class="st">"Time (s)"</span>,
+                <span class="dt">ylab =</span> <span class="st">"Objective loss"</span>,
+                <span class="dt">groups =</span> package,
+                <span class="dt">scales =</span> <span class="kw">list</span>(<span class="dt">relation =</span> <span class="st">"free"</span>),
+                <span class="dt">auto.key =</span> <span class="kw">list</span>(<span class="dt">lines =</span> <span class="ot">TRUE</span>, <span class="dt">points =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw"><a href="http://www.rdocumentation.org/packages/latticeExtra/topics/layer">glayer</a></span>(<span class="kw"><a href="http://www.rdocumentation.org/packages/latticeExtra/topics/panel.smoother">panel.smoother</a></span>(..., <span class="dt">span =</span> <span class="fl">0.5</span>))</code></pre></div>
 <div class="figure">
-<img src="test-results_files/figure-html/unnamed-chunk-3-1.png" alt="Difference in speed (in microseconds) of glmnet and scikit-learn (SAGA) runs. Positive (blue) values favor scikit-learn." width="384"><p class="caption">
-Difference in speed (in microseconds) of glmnet and scikit-learn (SAGA) runs. Positive (blue) values favor scikit-learn.
+<img src="test-results_files/figure-html/unnamed-chunk-3-1.png" alt="Objective loss and runtimes for the glmnet and SAGA implementations. The lines are Loess fits." width="576"><p class="caption">
+Objective loss and runtimes for the glmnet and SAGA implementations. The lines are Loess fits.
 </p>
 </div>
-<p>Unlike in the previous section, however, the objective function values remain comparable between <strong>glmnet</strong> and <strong>scikit-learn</strong> for most dataset sizes. There is indeed an advantage for <strong>glmnet</strong> but it really only shows for the smallest feature matrix that we assessed with 100 rows and 2 columns.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">z &lt;-<span class="st"> </span><span class="kw">max</span>(<span class="kw">abs</span>(data_mediumhard_diff<span class="op">$</span>loss))
-
-lattice<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/lattice/topics/levelplot">levelplot</a></span>(
-  loss <span class="op">~</span><span class="st"> </span>cols<span class="op">*</span>rows, 
-  <span class="dt">data =</span> data_mediumhard_diff,
-  <span class="dt">asp =</span> <span class="dv">1</span>,
-  <span class="dt">at =</span> <span class="kw">seq</span>(<span class="op">-</span>z, z, <span class="dt">length.out =</span> <span class="dv">20</span>),
-  <span class="dt">col.regions =</span> gradpal,
-  <span class="dt">main =</span> <span class="st">"Loss (glmnet - scikit-learn)"</span>
-)</code></pre></div>
-<div class="figure">
-<img src="test-results_files/figure-html/unnamed-chunk-4-1.png" alt="Difference in objective function loss between glmnet and bigoptim. Negative (red) values favor glmnet." width="384"><p class="caption">
-Difference in objective function loss between glmnet and bigoptim. Negative (red) values favor glmnet.
-</p>
-</div>
-<p>Taken together, the results suggest that there <em>is</em> benefit to be gained from porting the SAGA algorithm to R. The benefit is perhaps even greater than demonstrated here, given that the simulations here carry some overhead from having called python via R.</p>
+<p>For all but the <code><a href="../reference/ijcnn1.html">gsoc18saga::ijcnn1</a></code> dataset, the SAGA algorithm converges faster towards the minimum than glmnet, suggesting that there likely is benefit to be gained from porting the SAGA algorithm to R.</p>
 </div>
 <div id="hard" class="section level2">
 <h2 class="hasAnchor">
