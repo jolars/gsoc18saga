@@ -11,7 +11,6 @@
 #'   \item{loss}{value of objective function}
 #'   \item{package}{package}
 #' }
-#' @source https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
 "data_medium"
 
 #' Benchmarks for medium-hard task
@@ -29,7 +28,6 @@
 #'   \item{time}{runtime in seconds}
 #'   \item{loss}{value of objective function}
 #' }
-#' @source https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
 "data_mediumhard"
 
 #' ijcnn1
