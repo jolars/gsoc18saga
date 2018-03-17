@@ -12,12 +12,15 @@
 \item{loss}{value of objective function}
 \item{package}{package}
 }}
+\source{
+https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
+}
 \usage{
 data_medium
 }
 \description{
 A benchmark of L2-regularized logistic regression in the
 \pkg{bigoptim} and \pkg{glmnet} packages based on subsets of the
-\link[bigoptim:covtype.libsvm]{bigoptim::covtype.libsvm} dataset.
+\link{covtype} dataset.
 }
 \keyword{datasets}

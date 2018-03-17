@@ -6,18 +6,22 @@
 \title{Benchmarks for medium-hard task}
 \format{A data frame with 800 rows and 5 variables:
 \describe{
-\item{rows}{number of rows in data}
-\item{cols}{number of columns in data}
-\item{time}{time in nanoseconds}
+\item{dataset}{dataset}
+\item{package}{package, glmnet or saga}
+\item{time}{runtime in seconds}
 \item{loss}{value of objective function}
-\item{package}{package}
 }}
+\source{
+https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
+}
 \usage{
 data_mediumhard
 }
 \description{
-A benchmark of L1-regularized logistic regression in the
-\pkg{scikit-learn} python package and \pkg{glmnet} R package based
-on subsets of the \link[bigoptim:covtype.libsvm]{bigoptim::covtype.libsvm} dataset.
+A benchmark of SAGA L1-regularized logistic regression in the
+\pkg{scikit-learn} python package and the python version of
+\pkg{glmnet} based
+on subsets of the \link{covtype}, \link{ijcnn1}, \link{a9a}, \link{mushrooms},
+\link{skin_noskin}, and \link{phishing} datasets.
 }
 \keyword{datasets}
