@@ -106,15 +106,5 @@ for (i in seq_along(datasets)) {
 }
 
 data_mediumhard <- data_mediumhard[order(data_mediumhard$time), ]
-# library(lattice)
-# library(latticeExtra)
-# lattice::xyplot(loss ~ time | dataset,
-#                 data_mediumhard,
-#                 xlab = "Time (s)",
-#                 ylanb = "Objective loss",
-#                 groups = package,
-#                 scales = list(relation = "free"),
-#                 auto.key = list(lines = TRUE, points = TRUE)) +
-#   glayer(panel.smoother(..., span = 0.5))
 
 devtools::use_data(data_mediumhard, overwrite = TRUE)
