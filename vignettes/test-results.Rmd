@@ -102,13 +102,13 @@ manages an accuracy of
 
 In this part we are going to compare the performance of **glmnet** with
 that of **bigoptim** for L2-regularized model fits. For this purpose,
-we are going to use the `bigoptim::covtype.svm` data set and
+we are going to use the `gsoc18saga::covertype` data set and
 and see how timings differ depending on the numbers of columns and rows we
 use from the data. We will also study objective function values in the
 same fashion.
 
 The results for these simulations have been precomputed through code
-that is available at <https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R>. 
+that is available at <https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium.R>. 
 The dataset is made part of this package and available as `gsoc18saga::data_medium`.
 
 Looking at the results from the simulation, we note that `glmnet()` and
@@ -164,63 +164,50 @@ lattice::levelplot(
 This section is similar to the previous one but relates to 
 L1-regularization, rather than L2-regularization and instead compares 
 **glmnet** with the logistic regression fitter of the python **scikit-learn**
-module. In particular, we will look at the SAGA algorithm. As before,
-we will use the `bigoptim::covtype.svm` data set and fit models to
-feature matrices of increasing rows and columns. 
+module. In particular, we will look at the SAGA algorithm. This time around,
+we will look at six different datasets:
+
+Name              Observations      Features
+----------    ----------------     ---------
+icjnn1                  49,990            22
+a9a                     32,561           123
+phishing                11,055            68
+mushroooms               8,124           112
+covtype                581,012            54
+skin_nonskin           245,057             3
+
+All of these have been collected from the
+[libsvm binary dataset collection](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html).
 
 The R package **reticulate** is used to interface with python in the 
-data simulations, which, as before, are featured at 
-<https://github.com/jolars/gsoc18saga/blob/master/data-raw/benchmarks.R>.
-The dataset is made part of this package and available as `gsoc18saga::data_mediumhard`.
+data simulations, which, are featured at 
+<https://github.com/jolars/gsoc18saga/blob/master/data-raw/medium-hard.R>.
+The dataset is made part of this package and available as
+`gsoc18saga::data_mediumhard`.
 
-As in the comparison between **glmnet** and **bigoptim**, we again see
-the same pattern of decreasing performance for **glmnet** with
-large datasets.
+To put the two packages on equal footing, we now instead use
+the python-based implementation of **glmnet** to circumvent the possible
+overhead that calling python from R might introduce. For each dataset in our
+comparison, we iterate across a range of tolerance values (stopping criteria)
+for the optimizers in the two algorithms and collect the objective loss
+for each algorithm as well as the runtime at which they terminate.
  
-```{r, fig.cap = "Difference in speed (in microseconds) of glmnet and scikit-learn (SAGA) runs. Positive (blue) values favor scikit-learn."}
-data_mediumhard_diff <- data_mediumhard %>%
-  gather("var", "value", time, loss) %>%
-  spread(package, value) %>%
-  mutate(diff = glmnet - saga) %>%
-  select(-glmnet, -saga) %>%
-  spread(var, diff)
-
-z <- max(abs(data_mediumhard_diff$time))
-
-lattice::levelplot(
-  time ~ cols*rows, 
-  data = data_mediumhard_diff,
-  asp = 1,
-  at = seq(-z, z, length.out = 20),
-  col.regions = gradpal,
-  main = "Speed (glmnet - scikit-learn)"
-)
+```{r, fig.cap = "Objective loss and runtimes for the glmnet and SAGA implementations. The lines are Loess fits.", fig.width = 6, fig.height = 4.5}
+library(latticeExtra)
+lattice::xyplot(loss ~ time | dataset,
+                data_mediumhard,
+                xlab = "Time (s)",
+                ylab = "Objective loss",
+                groups = package,
+                scales = list(relation = "free"),
+                auto.key = list(lines = TRUE, points = TRUE)) +
+  glayer(panel.smoother(..., span = 0.5))
 ```
 
-Unlike in the previous section, however, the objective function values remain
-comparable between **glmnet** and **scikit-learn** for most dataset sizes.
-There is indeed an advantage for **glmnet** but it really only shows
-for the smallest feature matrix that we assessed with
-`r min(data_mediumhard$rows)`
-rows and `r min(data_mediumhard$cols)` columns.
-
-```{r, fig.cap = "Difference in objective function loss between glmnet and bigoptim. Negative (red) values favor glmnet."}
-z <- max(abs(data_mediumhard_diff$loss))
-
-lattice::levelplot(
-  loss ~ cols*rows, 
-  data = data_mediumhard_diff,
-  asp = 1,
-  at = seq(-z, z, length.out = 20),
-  col.regions = gradpal,
-  main = "Loss (glmnet - scikit-learn)"
-)
-```
-
-Taken together, the results suggest that there *is* benefit to be gained from
-porting the SAGA algorithm to R. The benefit is perhaps even greater than
-demonstrated here, given that the simulations here carry some overhead 
-from having called python via R.
+For all but the `gsoc18saga::ijcnn1` dataset, the SAGA algorithm
+converges faster towards the minimum than glmnet,
+suggesting that there likely is benefit to be gained from
+porting the SAGA algorithm to R.
 
 ## Hard
 
