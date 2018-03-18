@@ -21,7 +21,8 @@ Suggests:
     caret,
     pROC,
     tidyr,
-    dplyr
+    dplyr,
+    latticeExtra
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.0.1
 Roxygen: list(markdown = TRUE)
