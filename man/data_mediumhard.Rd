@@ -19,6 +19,6 @@ A benchmark of SAGA L1-regularized logistic regression in the
 \pkg{scikit-learn} python package and the python version of
 \pkg{glmnet} based
 on subsets of the \link{covtype}, \link{ijcnn1}, \link{a9a}, \link{mushrooms},
-\link{skin_noskin}, and \link{phishing} datasets.
+\link{skin_nonskin}, and \link{phishing} datasets.
 }
 \keyword{datasets}

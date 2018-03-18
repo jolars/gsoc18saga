@@ -19,7 +19,7 @@
 #' \pkg{scikit-learn} python package and the python version of
 #' \pkg{glmnet} based
 #' on subsets of the [covtype], [ijcnn1], [a9a], [mushrooms],
-#' [skin_noskin], and [phishing] datasets.
+#' [skin_nonskin], and [phishing] datasets.
 #'
 #' @format A data frame with 800 rows and 5 variables:
 #' \describe{
